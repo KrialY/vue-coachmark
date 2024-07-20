@@ -84,11 +84,12 @@ export default defineComponent({
 
     async function doComputePosition() {
       if (!activeTemplate.value) return
-      const button = document.querySelector(activeTemplate.value.target)
+      const target = document.querySelector(activeTemplate.value.target)
       const tooltip = document.querySelector('#coach-mark')
       const arrowEl = document.querySelector('#arrow')
+      target && target.scrollIntoView({ behavior: 'smooth' })
 
-      const { x, y, middlewareData, placement } = await computePosition(button, tooltip, {
+      const { x, y, middlewareData, placement } = await computePosition(target, tooltip, {
         placement: props.placement,
         middleware: [offset(10), shift(), flip(), arrow({ element: arrowEl })]
       })
