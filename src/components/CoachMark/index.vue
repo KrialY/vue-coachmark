@@ -1,7 +1,7 @@
 <template>
   <Transition>
     <div
-      v-if="activeTemplate"
+      v-if="activeTemplate && target"
       id="coach-mark"
       class="coach-mark--floating"
       :style="floatingStyles"
@@ -12,7 +12,9 @@
         <slot :name="activeTemplate.templateName"></slot>
         <div class="coach-mark__actions">
           <button class="coach-mark__button" @click="handleSkip">Skip</button>
-          <button class="coach-mark__button" @click="handlePrevious">Previous</button>
+          <button class="coach-mark__button" v-if="activeTemplateIndex > 0" @click="handlePrevious">
+            Previous
+          </button>
           <button class="coach-mark__button" @click="handleNext">Next</button>
         </div>
       </div>
@@ -21,7 +23,7 @@
 </template>
 
 <script>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { defineComponent } from 'vue'
 import { computePosition, arrow, offset, shift, flip } from '@floating-ui/dom'
 
@@ -44,6 +46,8 @@ export default defineComponent({
     }
   },
   setup(props) {
+    const localStorageKey = `${PREFIX}-${props.storageKey}`
+
     const activeTemplateIndex = ref(0)
     const floatingStyles = ref({
       x: null,
@@ -53,7 +57,8 @@ export default defineComponent({
       x: null,
       y: null
     })
-    const localStorageKey = `${PREFIX}-${props.storageKey}`
+    const target = ref(null)
+
     const activeTemplate = computed(() => {
       const isShowed = props.storageKey && localStorage.getItem(localStorageKey)
       if (isShowed === 'true') return null
@@ -82,14 +87,33 @@ export default defineComponent({
       activeTemplateIndex.value++
     }
 
+    function initObserver() {
+      const observer = new MutationObserver(async () => {
+        const targetEl = document.querySelector(activeTemplate.value.target)
+        if (targetEl) {
+          target.value = targetEl
+          observer.disconnect()
+          await nextTick()
+          doComputePosition()
+        }
+      })
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      })
+    }
+
     async function doComputePosition() {
       if (!activeTemplate.value) return
-      const target = document.querySelector(activeTemplate.value.target)
+      const targetEl = document.querySelector(activeTemplate.value.target)
+      target.value = targetEl
+      if (!targetEl) return
       const tooltip = document.querySelector('#coach-mark')
       const arrowEl = document.querySelector('#arrow')
-      target && target.scrollIntoView({ behavior: 'smooth' })
+      targetEl.scrollIntoView({ behavior: 'smooth' })
 
-      const { x, y, middlewareData, placement } = await computePosition(target, tooltip, {
+      const { x, y, middlewareData, placement } = await computePosition(targetEl, tooltip, {
         placement: props.placement,
         middleware: [offset(10), shift(), flip(), arrow({ element: arrowEl })]
       })
@@ -114,9 +138,12 @@ export default defineComponent({
       }
     }
 
-    onMounted(doComputePosition)
+    onMounted(() => {
+      initObserver()
+    })
 
     return {
+      target,
       activeTemplateIndex,
       activeTemplate,
       floatingStyles,

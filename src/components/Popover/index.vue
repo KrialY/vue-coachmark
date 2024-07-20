@@ -12,7 +12,6 @@
 
 <script>
 import { computed, ref, watch } from 'vue'
-
 import { useFloating, offset, flip, shift, arrow } from '@floating-ui/vue'
 
 export default {

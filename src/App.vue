@@ -1,17 +1,11 @@
 <template>
   <div style="width: 2000px; height: 2000px">
-    <Popover v-if="false" v-model="isPopoverVisible">
-      <template #reference>
-        <button>Click me</button>
-      </template>
-      <template #content>
-        <div>This is the popover content.</div>
-      </template>
-    </Popover>
-    <button style="margin-left: 300px" id="aaa">1111</button>
-    <div style="background: red; width: 300px; position: absolute; bottom: -100px" id="bbb">
-      2222
-    </div>
+    <template v-if="visible">
+      <button style="margin-left: 300px" id="aaa">1111</button>
+      <div style="background: red; width: 300px; position: absolute; bottom: -100px" id="bbb">
+        2222
+      </div></template
+    >
     <CoachMark :steps="steps" placement="bottom">
       <template #1>1</template>
       <template #2>2</template>
@@ -22,10 +16,9 @@
 
 <script setup lang="ts">
 import CoachMark from '@/components/CoachMark/index.vue'
-import Popover from '@/components/CoachMark/Popover.vue'
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
-const isPopoverVisible = ref(false)
+const visible = ref(false)
 
 const steps = ref([
   {
@@ -37,6 +30,11 @@ const steps = ref([
     templateName: '2'
   }
 ])
+onMounted(() => {
+  setTimeout(() => {
+    visible.value = true
+  }, 2000)
+})
 </script>
 
 <style>
