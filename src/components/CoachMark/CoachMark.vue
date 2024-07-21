@@ -35,22 +35,50 @@
   </Transition>
 </template>
 
-<script>
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+<script lang="ts">
+import {
+  computed,
+  nextTick,
+  onMounted,
+  ref,
+  watch,
+  type ComputedRef,
+  type PropType,
+  type Ref,
+  type StyleValue
+} from 'vue'
 import { defineComponent } from 'vue'
-import { computePosition, arrow, offset, shift, autoUpdate, flip } from '@floating-ui/dom'
+import {
+  computePosition,
+  arrow,
+  offset,
+  shift,
+  autoUpdate,
+  flip,
+  type FloatingElement,
+  type Placement
+} from '@floating-ui/dom'
 
-const PREFIX = 'CoachMark'
+const PREFIX: string = 'CoachMark'
+
+interface Step {
+  target: string
+  templateName: string
+  beforeEnter?: () => void
+  beforeLeave?: () => void
+}
+
+type Steps = Array<Step>
 
 export default defineComponent({
   name: 'CoachMark',
   props: {
     steps: {
-      type: Array,
+      type: Array as PropType<Steps>,
       default: () => []
     },
     placement: {
-      type: String,
+      type: String as PropType<Placement>,
       default: 'bottom'
     },
     storageKey: {
@@ -58,31 +86,25 @@ export default defineComponent({
       default: ''
     },
     contentClasses: {
-      type: Array,
+      type: Array as PropType<Array<string>>,
       default: () => {
         return []
       }
     }
   },
   setup(props) {
-    const localStorageKey = `${PREFIX}-${props.storageKey}`
-    let _tempActiveTemplateIndex = 0
-    let cleanup = null
+    const localStorageKey: string = `${PREFIX}-${props.storageKey}`
+    let _tempActiveTemplateIndex: number = 0
+    let cleanup: Function | null = null
 
-    const activeTemplateIndex = ref(0)
-    const floatingStyles = ref({
-      x: null,
-      y: null
-    })
-    const arrowStyles = ref({
-      x: null,
-      y: null
-    })
-    const target = ref(null)
-    const arrowRef = ref()
-    const coachMarkRef = ref()
+    const activeTemplateIndex: Ref<number> = ref(0)
+    const floatingStyles: Ref<StyleValue> = ref({})
+    const arrowStyles: Ref<StyleValue> = ref({})
+    const target: Ref<Element | null> = ref(null)
+    const arrowRef: Ref<Element | null> = ref(null)
+    const coachMarkRef: Ref<FloatingElement | null> = ref(null)
 
-    const activeTemplate = computed(() => {
+    const activeTemplate: ComputedRef<Step | null> = computed(() => {
       const isShowed = props.storageKey && localStorage.getItem(localStorageKey)
       if (isShowed === 'true') return null
       return activeTemplateIndex.value < props.steps.length && activeTemplateIndex.value >= 0
@@ -99,14 +121,14 @@ export default defineComponent({
     })
 
     function handleSkip() {
-      activeTemplate.value.beforeLeave && activeTemplate.value.beforeLeave()
+      activeTemplate.value?.beforeLeave?.()
       // trigger animation
       _tempActiveTemplateIndex = props.steps.length
       activeTemplateIndex.value = -1
     }
 
     function handlePrevious() {
-      activeTemplate.value.beforeLeave && activeTemplate.value.beforeLeave()
+      activeTemplate.value?.beforeLeave?.()
       // trigger animation
       _tempActiveTemplateIndex = activeTemplateIndex.value - 1
       activeTemplateIndex.value = -1
@@ -117,7 +139,7 @@ export default defineComponent({
     }
 
     function handleNext() {
-      activeTemplate.value.beforeLeave && activeTemplate.value.beforeLeave()
+      activeTemplate.value?.beforeLeave?.()
       // trigger animation
       _tempActiveTemplateIndex = activeTemplateIndex.value + 1
       activeTemplateIndex.value = -1
@@ -125,7 +147,7 @@ export default defineComponent({
 
     function initObserver() {
       const observer = new MutationObserver(async () => {
-        const targetEl = document.querySelector(activeTemplate.value.target)
+        const targetEl = document.querySelector(activeTemplate.value?.target as string)
         if (targetEl) {
           target.value = targetEl
           observer.disconnect()
@@ -143,11 +165,11 @@ export default defineComponent({
       if (!activeTemplate.value) return
       activeTemplate.value.beforeEnter && activeTemplate.value.beforeEnter()
       await nextTick()
-      const targetEl = document.querySelector(activeTemplate.value.target)
+      const targetEl: Element | null = document.querySelector(activeTemplate.value.target)
       target.value = targetEl
-      if (!targetEl) return
-      const coachMarkEl = coachMarkRef.value
-      const arrowEl = arrowRef.value
+      const coachMarkEl: FloatingElement | null = coachMarkRef.value
+      const arrowEl: Element | null = arrowRef.value
+      if (!targetEl || !coachMarkEl || !arrowEl) return
 
       targetEl.scrollIntoView({ behavior: 'smooth' })
 
@@ -157,6 +179,7 @@ export default defineComponent({
       computeCoachMarkPosition()
 
       async function computeCoachMarkPosition() {
+        if (!targetEl || !coachMarkEl || !arrowEl) return
         const { x, y, middlewareData, placement } = await computePosition(targetEl, coachMarkEl, {
           placement: props.placement,
           middleware: [offset(10), shift(), flip(), arrow({ element: arrowEl })]
@@ -167,13 +190,13 @@ export default defineComponent({
         }
         if (middlewareData.arrow) {
           const { x, y } = middlewareData.arrow
-          const computeArrowPosition = {
+          const computeArrowPosition: Record<string, string> = {
             top: 'bottom',
             bottom: 'top',
             left: 'right',
             right: 'left'
           }
-          const boxShadowStyle = {
+          const boxShadowStyle: Record<string, string> = {
             top: '4px 4px 8px rgba(0, 0, 0, 0.1)',
             bottom: '-4px -4px 8px rgba(0, 0, 0, 0.1)',
             left: '4px -4px 8px rgba(0, 0, 0, 0.1)',
