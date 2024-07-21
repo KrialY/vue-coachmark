@@ -3,6 +3,18 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "author": {
+    "name": "KrialY",
+    "email": "krialy@foxmail.com"
+  },
+  "homepage": "https://github.com/KrialY/vue-coachmark",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KrialY/vue-coachmark.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KrialY/vue-coachmark/issues"
+  },
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
@@ -12,6 +24,16 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/"
   },
+  "keywords": [
+    "vuejs",
+    "vue",
+    "vue-components",
+    "vue-coachmark",
+    "vue3",
+    "vue-plugin",
+    "vue-component",
+    "vue-resource"
+  ],
   "main": "dist/index.umd.js",
   "module": "dist/index.es.js",
   "dependencies": {
