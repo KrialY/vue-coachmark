@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import CoachMark from '@/components/CoachMark/index.vue'
+import CoachMark from '@/components/CoachMark'
 import { onMounted, ref } from 'vue'
 
 const visible = ref(false)
