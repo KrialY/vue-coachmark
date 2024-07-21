@@ -1,5 +1,5 @@
 <template>
-  <Transition @after-leave="onAfterLeave">
+  <Transition name="coach-mark" @after-leave="handleAnimationEnd">
     <div
       v-if="activeTemplate && target"
       id="coach-mark"
@@ -26,7 +26,7 @@
 <script>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { defineComponent } from 'vue'
-import { computePosition, arrow, offset, shift, flip } from '@floating-ui/dom'
+import { computePosition, arrow, offset, shift, autoUpdate, flip } from '@floating-ui/dom'
 
 const PREFIX = 'CoachMark'
 
@@ -49,6 +49,7 @@ export default defineComponent({
   setup(props) {
     const localStorageKey = `${PREFIX}-${props.storageKey}`
     let _tempActiveTemplateIndex = 0
+    let cleanup = null
 
     const activeTemplateIndex = ref(0)
     const floatingStyles = ref({
@@ -85,7 +86,7 @@ export default defineComponent({
       activeTemplateIndex.value--
     }
 
-    function onAfterLeave() {
+    function handleAnimationEnd() {
       activeTemplateIndex.value = _tempActiveTemplateIndex + 1
     }
 
@@ -120,6 +121,9 @@ export default defineComponent({
       const tooltip = document.querySelector('#coach-mark')
       const arrowEl = document.querySelector('#arrow')
       targetEl.scrollIntoView({ behavior: 'smooth' })
+
+      cleanup && cleanup()
+      cleanup = autoUpdate(targetEl, tooltip, computeCoachMarkPosition)
 
       computeCoachMarkPosition()
       async function computeCoachMarkPosition() {
@@ -159,7 +163,7 @@ export default defineComponent({
       activeTemplate,
       floatingStyles,
       arrowStyles,
-      onAfterLeave,
+      handleAnimationEnd,
       handleSkip,
       handlePrevious,
       handleNext
@@ -169,13 +173,13 @@ export default defineComponent({
 </script>
 
 <style lang="scss">
-.v-enter-active,
-.v-leave-active {
-  transition: opacity 0.5s ease;
+.coach-mark-enter-active,
+.coach-mark-leave-active {
+  transition: opacity 0.25s ease;
 }
 
-.v-enter-from,
-.v-leave-to {
+.coach-mark-enter-from,
+.coach-mark-leave-to {
   opacity: 0;
 }
 
