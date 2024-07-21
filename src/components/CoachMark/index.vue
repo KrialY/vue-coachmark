@@ -1,11 +1,10 @@
 <template>
-  <Transition>
+  <Transition @after-leave="onAfterLeave">
     <div
       v-if="activeTemplate && target"
       id="coach-mark"
       class="coach-mark--floating"
       :style="floatingStyles"
-      :key="activeTemplate.templateName"
     >
       <div id="arrow" :style="arrowStyles" class="coach-mark__arrow"></div>
       <div class="coach-mark__content">
@@ -15,7 +14,9 @@
           <button class="coach-mark__button" v-if="activeTemplateIndex > 0" @click="handlePrevious">
             Previous
           </button>
-          <button class="coach-mark__button" @click="handleNext">Next</button>
+          <button class="coach-mark__button" @click="handleNext">
+            {{ activeTemplateIndex === steps.length - 1 ? 'Finish' : 'Next' }}
+          </button>
         </div>
       </div>
     </div>
@@ -47,6 +48,7 @@ export default defineComponent({
   },
   setup(props) {
     const localStorageKey = `${PREFIX}-${props.storageKey}`
+    let _tempActiveTemplateIndex = 0
 
     const activeTemplateIndex = ref(0)
     const floatingStyles = ref({
@@ -62,7 +64,7 @@ export default defineComponent({
     const activeTemplate = computed(() => {
       const isShowed = props.storageKey && localStorage.getItem(localStorageKey)
       if (isShowed === 'true') return null
-      return activeTemplateIndex.value < props.steps.length
+      return activeTemplateIndex.value < props.steps.length && activeTemplateIndex.value >= 0
         ? props.steps[activeTemplateIndex.value]
         : null
     })
@@ -83,8 +85,14 @@ export default defineComponent({
       activeTemplateIndex.value--
     }
 
+    function onAfterLeave() {
+      activeTemplateIndex.value = _tempActiveTemplateIndex + 1
+    }
+
     function handleNext() {
-      activeTemplateIndex.value++
+      // trigger animation
+      _tempActiveTemplateIndex = activeTemplateIndex.value
+      activeTemplateIndex.value = -1
     }
 
     function initObserver() {
@@ -93,7 +101,6 @@ export default defineComponent({
         if (targetEl) {
           target.value = targetEl
           observer.disconnect()
-          await nextTick()
           doComputePosition()
         }
       })
@@ -105,6 +112,7 @@ export default defineComponent({
     }
 
     async function doComputePosition() {
+      await nextTick()
       if (!activeTemplate.value) return
       const targetEl = document.querySelector(activeTemplate.value.target)
       target.value = targetEl
@@ -113,27 +121,30 @@ export default defineComponent({
       const arrowEl = document.querySelector('#arrow')
       targetEl.scrollIntoView({ behavior: 'smooth' })
 
-      const { x, y, middlewareData, placement } = await computePosition(targetEl, tooltip, {
-        placement: props.placement,
-        middleware: [offset(10), shift(), flip(), arrow({ element: arrowEl })]
-      })
-      floatingStyles.value = {
-        left: `${x}px`,
-        top: `${y}px`
-      }
-      if (middlewareData.arrow) {
-        const { x, y } = middlewareData.arrow
-        const computeArrowPosition = {
-          top: 'bottom',
-          bottom: 'top',
-          left: 'right',
-          right: 'top'
+      computeCoachMarkPosition()
+      async function computeCoachMarkPosition() {
+        const { x, y, middlewareData, placement } = await computePosition(targetEl, tooltip, {
+          placement: props.placement,
+          middleware: [offset(10), shift(), flip(), arrow({ element: arrowEl })]
+        })
+        floatingStyles.value = {
+          left: `${x}px`,
+          top: `${y}px`
         }
+        if (middlewareData.arrow) {
+          const { x, y } = middlewareData.arrow
+          const computeArrowPosition = {
+            top: 'bottom',
+            bottom: 'top',
+            left: 'right',
+            right: 'top'
+          }
 
-        arrowStyles.value = {
-          left: x != null ? `${x}px` : '',
-          top: y != null ? `${y}px` : '',
-          [computeArrowPosition[placement]]: '-4px'
+          arrowStyles.value = {
+            left: x != null ? `${x}px` : '',
+            top: y != null ? `${y}px` : '',
+            [computeArrowPosition[placement]]: '-4px'
+          }
         }
       }
     }
@@ -148,6 +159,7 @@ export default defineComponent({
       activeTemplate,
       floatingStyles,
       arrowStyles,
+      onAfterLeave,
       handleSkip,
       handlePrevious,
       handleNext
