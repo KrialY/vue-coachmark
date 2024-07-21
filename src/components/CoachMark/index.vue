@@ -2,23 +2,34 @@
   <Transition name="coach-mark" @after-leave="handleAnimationEnd">
     <div
       v-if="activeTemplate && target"
-      id="coach-mark"
       ref="coachMarkRef"
       class="coach-mark--floating"
       :style="floatingStyles"
     >
-      <div id="arrow" ref="arrowRef" :style="arrowStyles" class="coach-mark__arrow"></div>
-      <div class="coach-mark__content">
+      <div ref="arrowRef" :style="arrowStyles" class="coach-mark__arrow"></div>
+      <div :class="['coach-mark__content', ...contentClasses]">
         <slot :name="activeTemplate.templateName"></slot>
-        <div class="coach-mark__actions">
-          <button class="coach-mark__button" @click="handleSkip">Skip</button>
-          <button class="coach-mark__button" v-if="activeTemplateIndex > 0" @click="handlePrevious">
-            Previous
-          </button>
-          <button class="coach-mark__button" @click="handleNext">
-            {{ activeTemplateIndex === steps.length - 1 ? 'Finish' : 'Next' }}
-          </button>
-        </div>
+        <slot name="actions" :skip="handleSkip" :previous="handlePrevious" :next="handleNext">
+          <div class="coach-mark__actions">
+            <slot name="skip" :skip="handleSkip">
+              <button class="coach-mark__button" @click="handleSkip">Skip</button>
+            </slot>
+            <slot name="previous" :previous="handlePrevious">
+              <button
+                class="coach-mark__button"
+                v-if="activeTemplateIndex > 0"
+                @click="handlePrevious"
+              >
+                Previous
+              </button>
+            </slot>
+            <slot name="next" :next="handleNext" :currentStep="activeTemplateIndex" :steps="steps">
+              <button class="coach-mark__button" @click="handleNext">
+                {{ activeTemplateIndex === steps.length - 1 ? 'Finish' : 'Next' }}
+              </button>
+            </slot>
+          </div>
+        </slot>
       </div>
     </div>
   </Transition>
@@ -45,6 +56,12 @@ export default defineComponent({
     storageKey: {
       type: String,
       default: ''
+    },
+    contentClasses: {
+      type: Array,
+      default: () => {
+        return []
+      }
     }
   },
   setup(props) {
@@ -82,20 +99,24 @@ export default defineComponent({
     })
 
     function handleSkip() {
-      activeTemplateIndex.value = props.steps.length
+      // trigger animation
+      _tempActiveTemplateIndex = props.steps.length
+      activeTemplateIndex.value = -1
     }
 
     function handlePrevious() {
-      activeTemplateIndex.value--
+      // trigger animation
+      _tempActiveTemplateIndex = activeTemplateIndex.value - 1
+      activeTemplateIndex.value = -1
     }
 
     function handleAnimationEnd() {
-      activeTemplateIndex.value = _tempActiveTemplateIndex + 1
+      activeTemplateIndex.value = _tempActiveTemplateIndex
     }
 
     function handleNext() {
       // trigger animation
-      _tempActiveTemplateIndex = activeTemplateIndex.value
+      _tempActiveTemplateIndex = activeTemplateIndex.value + 1
       activeTemplateIndex.value = -1
     }
 
