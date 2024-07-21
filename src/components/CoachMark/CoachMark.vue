@@ -99,12 +99,14 @@ export default defineComponent({
     })
 
     function handleSkip() {
+      activeTemplate.value.beforeLeave && activeTemplate.value.beforeLeave()
       // trigger animation
       _tempActiveTemplateIndex = props.steps.length
       activeTemplateIndex.value = -1
     }
 
     function handlePrevious() {
+      activeTemplate.value.beforeLeave && activeTemplate.value.beforeLeave()
       // trigger animation
       _tempActiveTemplateIndex = activeTemplateIndex.value - 1
       activeTemplateIndex.value = -1
@@ -115,6 +117,7 @@ export default defineComponent({
     }
 
     function handleNext() {
+      activeTemplate.value.beforeLeave && activeTemplate.value.beforeLeave()
       // trigger animation
       _tempActiveTemplateIndex = activeTemplateIndex.value + 1
       activeTemplateIndex.value = -1
@@ -137,8 +140,9 @@ export default defineComponent({
     }
 
     async function doComputePosition() {
-      await nextTick()
       if (!activeTemplate.value) return
+      activeTemplate.value.beforeEnter && activeTemplate.value.beforeEnter()
+      await nextTick()
       const targetEl = document.querySelector(activeTemplate.value.target)
       target.value = targetEl
       if (!targetEl) return
@@ -167,13 +171,20 @@ export default defineComponent({
             top: 'bottom',
             bottom: 'top',
             left: 'right',
-            right: 'top'
+            right: 'left'
+          }
+          const boxShadowStyle = {
+            top: '4px 4px 8px rgba(0, 0, 0, 0.1)',
+            bottom: '-4px -4px 8px rgba(0, 0, 0, 0.1)',
+            left: '4px -4px 8px rgba(0, 0, 0, 0.1)',
+            right: '-4px 4px 8px rgba(0, 0, 0, 0.1)'
           }
 
           arrowStyles.value = {
             left: x != null ? `${x}px` : '',
             top: y != null ? `${y}px` : '',
-            [computeArrowPosition[placement]]: '-4px'
+            [computeArrowPosition[placement]]: '-4px',
+            boxShadow: boxShadowStyle[placement]
           }
         }
       }
@@ -219,8 +230,10 @@ export default defineComponent({
   &__content {
     padding: 20px;
     background-color: #fff;
-    box-shadow: 8px rgba(0, 0, 0, 0.1);
     border-radius: 4px;
+    box-shadow:
+      0 4px 8px rgba(0, 0, 0, 0.1),
+      0 6px 20px rgba(0, 0, 0, 0.1);
   }
   &__arrow {
     width: 10px;
