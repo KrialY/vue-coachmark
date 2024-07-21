@@ -3,10 +3,11 @@
     <div
       v-if="activeTemplate && target"
       id="coach-mark"
+      ref="coachMarkRef"
       class="coach-mark--floating"
       :style="floatingStyles"
     >
-      <div id="arrow" :style="arrowStyles" class="coach-mark__arrow"></div>
+      <div id="arrow" ref="arrowRef" :style="arrowStyles" class="coach-mark__arrow"></div>
       <div class="coach-mark__content">
         <slot :name="activeTemplate.templateName"></slot>
         <div class="coach-mark__actions">
@@ -61,6 +62,8 @@ export default defineComponent({
       y: null
     })
     const target = ref(null)
+    const arrowRef = ref()
+    const coachMarkRef = ref()
 
     const activeTemplate = computed(() => {
       const isShowed = props.storageKey && localStorage.getItem(localStorageKey)
@@ -118,16 +121,18 @@ export default defineComponent({
       const targetEl = document.querySelector(activeTemplate.value.target)
       target.value = targetEl
       if (!targetEl) return
-      const tooltip = document.querySelector('#coach-mark')
-      const arrowEl = document.querySelector('#arrow')
+      const coachMarkEl = coachMarkRef.value
+      const arrowEl = arrowRef.value
+
       targetEl.scrollIntoView({ behavior: 'smooth' })
 
       cleanup && cleanup()
-      cleanup = autoUpdate(targetEl, tooltip, computeCoachMarkPosition)
+      cleanup = autoUpdate(targetEl, coachMarkEl, computeCoachMarkPosition)
 
       computeCoachMarkPosition()
+
       async function computeCoachMarkPosition() {
-        const { x, y, middlewareData, placement } = await computePosition(targetEl, tooltip, {
+        const { x, y, middlewareData, placement } = await computePosition(targetEl, coachMarkEl, {
           placement: props.placement,
           middleware: [offset(10), shift(), flip(), arrow({ element: arrowEl })]
         })
@@ -158,6 +163,8 @@ export default defineComponent({
     })
 
     return {
+      arrowRef,
+      coachMarkRef,
       target,
       activeTemplateIndex,
       activeTemplate,
