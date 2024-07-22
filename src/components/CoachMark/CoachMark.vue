@@ -82,7 +82,7 @@ export default defineComponent({
       default: 'bottom'
     },
     storageKey: {
-      type: String,
+      type: String as PropType<string>,
       default: ''
     },
     contentClasses: {
