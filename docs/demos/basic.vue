@@ -1,5 +1,5 @@
 <template>
-  <button @click="handleShowCoachMark">show coachmark</button>
+  <button @click="handleShowCoachMark">Show Coachmark</button>
   <div style="margin-top: 8px">
     <div id="aaa" style="scroll-margin-top: 100px" class="target">Target A</div>
     <div id="bbb" class="target">Target B</div>

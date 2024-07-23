@@ -4,18 +4,19 @@ layout: home
 
 hero:
   name: 'Vue Coachmark'
-  text: 'Vue Coachmark desc'
-  tagline: My great project tagline
+  tagline: a Lightweight, Simple and Customizable tour plugin for use with Vue.js
   actions:
     - theme: brand
-      text: Markdown Examples
+      text: Examples
       link: /coachmark
 
 features:
-  - title: Feature A
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature B
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature C
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
+  - title: Easy
+    details:
+      - We provide intuitive and easy to understand APIs, making it exceptionally simple to integrate novice guidance into your project.
+  - title: Enough Testing
+    details: E2E testing coverage rate of over 90% by playwirhgt
+  - title: Flexible
+    details:
+      - <span>Flexible configuration:</span> You can customize the prompt content, location, and style for each step through configuration options to meet different design requirements.
 ---

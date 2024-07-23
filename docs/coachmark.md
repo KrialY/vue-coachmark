@@ -5,7 +5,7 @@ import Basic from './demos/basic.vue'
 
 # Vue Coachmark
 
-Vue Coachmark is a lightweight, simple and customizable tour plugin for use with Vue.js. It provides a quick and easy way to guide your users through your application.
+Vue Coachmark offers an easy-to-integrate, highly customizable, and user-friendly solution for creating interactive and responsive user guides.
 
 ## Basic Usage
 
