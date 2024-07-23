@@ -63,7 +63,3 @@ export default defineComponent({
 | contentClasses   |                                                                              The popover content classes                                                                               |                                         - | `Array<string>`         |
 | autoScroll       |                                                Automatically adjust the position of the window scrollbar to the current guide position                                                 |                                      true | `boolean`               |
 | autoScrollConfig |                                      The options of `scrollIntoView`, see https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView                                      | `{ behavior: 'smooth', block: 'center' }` | `ScrollIntoViewOptions` |
-
-引导的主要配置，其中target指需要被引导的元素，templateName指对应插槽编写的引导内容
-
-引导内容Popover优先显示的位置
