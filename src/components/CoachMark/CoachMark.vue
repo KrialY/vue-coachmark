@@ -159,19 +159,22 @@ export default defineComponent({
     }
 
     function initObserver() {
-      const observer = new MutationObserver(async () => {
+      const observer = new MutationObserver(observeTarget)
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      })
+      observeTarget()
+
+      function observeTarget() {
         const targetEl = document.querySelector(activeTemplate.value?.target as string)
         if (targetEl) {
           target.value = targetEl
           observer.disconnect()
           doComputePosition()
         }
-      })
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      })
+      }
     }
 
     async function doComputePosition() {
