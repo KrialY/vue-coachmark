@@ -90,6 +90,19 @@ export default defineComponent({
       default: () => {
         return []
       }
+    },
+    autoScroll: {
+      type: Boolean as PropType<boolean>,
+      default: true
+    },
+    autoScrollConfig: {
+      type: Object as PropType<ScrollIntoViewOptions>,
+      default: () => {
+        return {
+          behavior: 'smooth',
+          block: 'center'
+        }
+      }
     }
   },
   setup(props) {
@@ -171,7 +184,7 @@ export default defineComponent({
       const arrowEl: Element | null = arrowRef.value
       if (!targetEl || !coachMarkEl || !arrowEl) return
 
-      targetEl.scrollIntoView({ behavior: 'smooth' })
+      props.autoScroll && targetEl.scrollIntoView(props.autoScrollConfig)
 
       cleanup && cleanup()
       cleanup = autoUpdate(targetEl, coachMarkEl, computeCoachMarkPosition)
