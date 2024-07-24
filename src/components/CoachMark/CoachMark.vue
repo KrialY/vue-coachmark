@@ -42,12 +42,12 @@ import {
   onMounted,
   ref,
   watch,
+  defineComponent,
   type ComputedRef,
   type PropType,
   type Ref,
   type StyleValue
 } from 'vue'
-import { defineComponent } from 'vue'
 import {
   computePosition,
   arrow,
