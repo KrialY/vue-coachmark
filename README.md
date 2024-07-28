@@ -1,4 +1,4 @@
-# vue-coachmark
+# vue-coachmark (work in progress)
 
 Vue Coachmark offers an easy-to-integrate, highly customizable, and user-friendly solution for creating interactive and responsive user guides.
 This component only works in Vue3.
