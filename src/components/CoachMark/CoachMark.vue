@@ -7,27 +7,39 @@
       :style="floatingStyles"
     >
       <div ref="arrowRef" :style="arrowStyles" class="coach-mark__arrow"></div>
-      <div :class="['coach-mark__content', ...contentClasses]">
+      <div :class="['coach-mark__content', contentClass]">
         <slot :name="activeTemplate.templateName"></slot>
         <slot name="actions" :skip="handleSkip" :previous="handlePrevious" :next="handleNext">
-          <div class="coach-mark__actions">
-            <slot name="skip" :skip="handleSkip">
-              <button class="coach-mark__button" @click="handleSkip">Skip</button>
+          <div :class="['coach-mark__footer', footerClass]">
+            <slot name="progress" :current="activeTemplateIndex" :total="steps.length">
+              <div class="coach-mark__progress">
+                {{ activeTemplateIndex + 1 }} / {{ steps.length }}
+              </div>
             </slot>
-            <slot name="previous" :previous="handlePrevious">
-              <button
-                class="coach-mark__button"
-                v-if="activeTemplateIndex > 0"
-                @click="handlePrevious"
+            <div :class="['coach-mark__actions', actionsClass]">
+              <slot name="skip" :skip="handleSkip">
+                <button class="coach-mark__button" @click="handleSkip">Skip</button>
+              </slot>
+              <slot name="previous" :previous="handlePrevious">
+                <button
+                  class="coach-mark__button"
+                  v-if="activeTemplateIndex > 0"
+                  @click="handlePrevious"
+                >
+                  Previous
+                </button>
+              </slot>
+              <slot
+                name="next"
+                :next="handleNext"
+                :currentStep="activeTemplateIndex"
+                :steps="steps"
               >
-                Previous
-              </button>
-            </slot>
-            <slot name="next" :next="handleNext" :currentStep="activeTemplateIndex" :steps="steps">
-              <button class="coach-mark__button" @click="handleNext">
-                {{ activeTemplateIndex === steps.length - 1 ? 'Finish' : 'Next' }}
-              </button>
-            </slot>
+                <button class="coach-mark__button" @click="handleNext">
+                  {{ activeTemplateIndex === steps.length - 1 ? 'Finish' : 'Next' }}
+                </button>
+              </slot>
+            </div>
           </div>
         </slot>
       </div>
@@ -90,11 +102,17 @@ export default defineComponent({
       type: String as PropType<string>,
       default: ''
     },
-    contentClasses: {
-      type: Array as PropType<Array<string>>,
-      default: () => {
-        return []
-      }
+    contentClass: {
+      type: String as PropType<string>,
+      default: ''
+    },
+    footerClass: {
+      type: String as PropType<string>,
+      default: ''
+    },
+    actionsClass: {
+      type: String as PropType<string>,
+      default: ''
     },
     autoScroll: {
       type: Boolean as PropType<boolean>,
@@ -302,6 +320,15 @@ export default defineComponent({
     transform: rotate(45deg);
     position: absolute;
   }
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+  &__progress {
+    padding-right: 8px;
+  }
   &__button {
     font-size: 14px;
     color: rgb(42 126 59);
@@ -313,7 +340,7 @@ export default defineComponent({
     border: 1px solid rgb(42 126 59);
     cursor: pointer;
     transition: 0.15s;
-    margin-left: 8px;
+    margin-right: 8px;
     &:hover {
       background-color: rgba(42, 126, 59, 0.05);
     }
