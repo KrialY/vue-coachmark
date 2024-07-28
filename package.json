@@ -36,7 +36,8 @@
     "type-check": "vue-tsc --build --force",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/",
-    "docs:dev": "npm run docs:dev --prefix docs"
+    "docs:dev": "npm run docs:dev --prefix docs",
+    "docs:build": "npm run docs:build --prefix docs"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.6.7"
