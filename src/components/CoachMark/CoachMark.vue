@@ -64,11 +64,16 @@ const PREFIX: string = 'CoachMark'
 interface Step {
   target: string
   templateName: string
-  beforeEnter?: () => void
-  beforeLeave?: () => void
+  beforeEnter?: () => Promise<boolean> | void
+  beforeLeave?: () => Promise<boolean> | void
 }
 
 type Steps = Array<Step>
+
+enum Action {
+  next,
+  previous
+}
 
 export default defineComponent({
   name: 'CoachMark',
@@ -107,9 +112,10 @@ export default defineComponent({
   },
   setup(props) {
     const localStorageKey: string = `${PREFIX}-${props.storageKey}`
-    let _tempActiveTemplateIndex: number = 0
     let cleanup: Function | null = null
+    let action: Action | null = null
 
+    const isChangingStep: Ref<boolean> = ref(false)
     const activeTemplateIndex: Ref<number> = ref(0)
     const floatingStyles: Ref<StyleValue> = ref({})
     const arrowStyles: Ref<StyleValue> = ref({})
@@ -118,6 +124,7 @@ export default defineComponent({
     const coachMarkRef: Ref<FloatingElement | null> = ref(null)
 
     const activeTemplate: ComputedRef<Step | null> = computed(() => {
+      if (isChangingStep.value) return null
       const isShowed = props.storageKey && localStorage.getItem(localStorageKey)
       if (isShowed === 'true') return null
       return activeTemplateIndex.value < props.steps.length && activeTemplateIndex.value >= 0
@@ -126,36 +133,45 @@ export default defineComponent({
     })
 
     watch(activeTemplateIndex, (val) => {
-      if (val < props.steps.length) {
-        doComputePosition()
-      } else {
+      if (val >= props.steps.length) {
         props.storageKey && localStorage.setItem(localStorageKey, 'true')
       }
     })
 
-    function handleSkip() {
-      activeTemplate.value?.beforeLeave?.()
+    async function handleSkip() {
+      const res = await activeTemplate.value?.beforeLeave?.()
+      if (res === false) return
       // trigger animation
-      _tempActiveTemplateIndex = props.steps.length
-      activeTemplateIndex.value = -1
+      activeTemplateIndex.value = props.steps.length
     }
 
-    function handlePrevious() {
-      activeTemplate.value?.beforeLeave?.()
+    async function handlePrevious() {
+      const res = await activeTemplate.value?.beforeLeave?.()
+      if (res === false) return
       // trigger animation
-      _tempActiveTemplateIndex = activeTemplateIndex.value - 1
-      activeTemplateIndex.value = -1
+      isChangingStep.value = true
+      action = Action.previous
+      target.value = null
     }
 
-    function handleAnimationEnd() {
-      activeTemplateIndex.value = _tempActiveTemplateIndex
+    async function handleAnimationEnd() {
+      const next =
+        action === Action.previous ? activeTemplateIndex.value - 1 : activeTemplateIndex.value + 1
+      const step = props.steps[next]
+      const res = await step?.beforeEnter?.()
+      if (res === false) return
+      activeTemplateIndex.value = next
+      isChangingStep.value = false
+      initObserver()
     }
 
-    function handleNext() {
-      activeTemplate.value?.beforeLeave?.()
+    async function handleNext() {
+      const res = await activeTemplate.value?.beforeLeave?.()
+      if (res === false) return
       // trigger animation
-      _tempActiveTemplateIndex = activeTemplateIndex.value + 1
-      activeTemplateIndex.value = -1
+      isChangingStep.value = true
+      action = Action.next
+      target.value = null
     }
 
     function initObserver() {
@@ -167,39 +183,44 @@ export default defineComponent({
       })
       observeTarget()
 
-      function observeTarget() {
+      async function observeTarget() {
         const targetEl = document.querySelector(activeTemplate.value?.target as string)
         if (targetEl) {
           target.value = targetEl
           observer.disconnect()
+          await nextTick()
           doComputePosition()
         }
       }
     }
 
-    async function doComputePosition() {
-      if (!activeTemplate.value) return
-      activeTemplate.value.beforeEnter && activeTemplate.value.beforeEnter()
-      await nextTick()
-      const targetEl: Element | null = document.querySelector(activeTemplate.value.target)
-      target.value = targetEl
-      const coachMarkEl: FloatingElement | null = coachMarkRef.value
-      const arrowEl: Element | null = arrowRef.value
-      if (!targetEl || !coachMarkEl || !arrowEl) return
+    function doComputePosition() {
+      if (!target.value || !coachMarkRef.value || !arrowRef.value) return
 
-      props.autoScroll && targetEl.scrollIntoView(props.autoScrollConfig)
+      props.autoScroll && target.value.scrollIntoView(props.autoScrollConfig)
 
       cleanup && cleanup()
-      cleanup = autoUpdate(targetEl, coachMarkEl, computeCoachMarkPosition)
+      cleanup = autoUpdate(target.value, coachMarkRef.value, computeCoachMarkPosition)
 
       computeCoachMarkPosition()
 
       async function computeCoachMarkPosition() {
-        if (!targetEl || !coachMarkEl || !arrowEl) return
-        const { x, y, middlewareData, placement } = await computePosition(targetEl, coachMarkEl, {
-          placement: props.placement,
-          middleware: [offset(10), shift(), flip(), arrow({ element: arrowEl })]
-        })
+        const curTargetEl: Element | null = document.querySelector(
+          activeTemplate?.value?.target as string
+        )
+        if (target.value && !curTargetEl) {
+          target.value = null
+          return
+        }
+        if (!target.value || !coachMarkRef.value || !arrowRef.value) return
+        const { x, y, middlewareData, placement } = await computePosition(
+          target.value,
+          coachMarkRef.value,
+          {
+            placement: props.placement,
+            middleware: [offset(10), shift(), flip(), arrow({ element: arrowRef.value })]
+          }
+        )
         floatingStyles.value = {
           left: `${x}px`,
           top: `${y}px`
