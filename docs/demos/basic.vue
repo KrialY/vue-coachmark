@@ -18,7 +18,7 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import CoachMark from 'vue-coachmark'
+import CoachMark from '../../src/components/CoachMark'
 
 export default defineComponent({
   name: 'BasicDemo',
