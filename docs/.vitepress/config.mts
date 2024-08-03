@@ -11,14 +11,15 @@ export default defineConfig({
       { text: 'Home', link: '/' },
       { text: 'Examples', link: '/coachmark' }
     ],
-    // sidebar: [
-    //   {
-    //     text: 'Examples',
-    //     items: [
-    //       { text: 'Markdown Examples', link: '/coachmark' }
-    //     ]
-    //   }
-    // ],
+    sidebar: [
+      {
+        text: 'Examples',
+        items: [
+          { text: 'Basic usage', link: '/coachmark' },
+          { text: 'Auto scroll', link: '/autoScroll' }
+        ]
+      }
+    ],
     socialLinks: [
       { icon: 'github', link: 'https://github.com/KrialY/vue-coachmark' }
     ]
