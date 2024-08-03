@@ -1,50 +1,52 @@
 <template>
-  <Transition name="coach-mark" @after-leave="handleAnimationEnd">
-    <div
-      v-if="activeTemplate && target"
-      ref="coachMarkRef"
-      class="coach-mark--floating"
-      :style="floatingStyles"
-    >
-      <div ref="arrowRef" :style="arrowStyles" class="coach-mark__arrow"></div>
-      <div :class="['coach-mark__content', contentClass]">
-        <slot :name="activeTemplate.templateName"></slot>
-        <slot name="actions" :skip="handleSkip" :previous="handlePrevious" :next="handleNext">
-          <div :class="['coach-mark__footer', footerClass]">
-            <slot name="progress" :current="activeTemplateIndex" :total="steps.length">
-              <div class="coach-mark__progress">
-                {{ activeTemplateIndex + 1 }} / {{ steps.length }}
-              </div>
-            </slot>
-            <div :class="['coach-mark__actions', actionsClass]">
-              <slot name="skip" :skip="handleSkip">
-                <button class="coach-mark__button" @click="handleSkip">Skip</button>
+  <Teleport to="body" :disabled="!teleported">
+    <Transition name="coach-mark" @after-leave="handleAnimationEnd">
+      <div
+        v-if="activeTemplate && target"
+        ref="coachMarkRef"
+        class="coach-mark--floating"
+        :style="floatingStyles"
+      >
+        <div ref="arrowRef" :style="arrowStyles" class="coach-mark__arrow"></div>
+        <div :class="['coach-mark__content', contentClass]">
+          <slot :name="activeTemplate.templateName"></slot>
+          <slot name="actions" :skip="handleSkip" :previous="handlePrevious" :next="handleNext">
+            <div :class="['coach-mark__footer', footerClass]">
+              <slot name="progress" :current="activeTemplateIndex" :total="steps.length">
+                <div class="coach-mark__progress">
+                  {{ activeTemplateIndex + 1 }} / {{ steps.length }}
+                </div>
               </slot>
-              <slot name="previous" :previous="handlePrevious">
-                <button
-                  class="coach-mark__button"
-                  v-if="activeTemplateIndex > 0"
-                  @click="handlePrevious"
+              <div :class="['coach-mark__actions', actionsClass]">
+                <slot name="skip" :skip="handleSkip">
+                  <button class="coach-mark__button" @click="handleSkip">Skip</button>
+                </slot>
+                <slot name="previous" :previous="handlePrevious">
+                  <button
+                    class="coach-mark__button"
+                    v-if="activeTemplateIndex > 0"
+                    @click="handlePrevious"
+                  >
+                    Previous
+                  </button>
+                </slot>
+                <slot
+                  name="next"
+                  :next="handleNext"
+                  :currentStep="activeTemplateIndex"
+                  :steps="steps"
                 >
-                  Previous
-                </button>
-              </slot>
-              <slot
-                name="next"
-                :next="handleNext"
-                :currentStep="activeTemplateIndex"
-                :steps="steps"
-              >
-                <button class="coach-mark__button" @click="handleNext">
-                  {{ activeTemplateIndex === steps.length - 1 ? 'Finish' : 'Next' }}
-                </button>
-              </slot>
+                  <button class="coach-mark__button" @click="handleNext">
+                    {{ activeTemplateIndex === steps.length - 1 ? 'Finish' : 'Next' }}
+                  </button>
+                </slot>
+              </div>
             </div>
-          </div>
-        </slot>
+          </slot>
+        </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <script lang="ts">
@@ -117,6 +119,10 @@ export default defineComponent({
     autoScroll: {
       type: Boolean as PropType<boolean>,
       default: true
+    },
+    teleported: {
+      type: Boolean as PropType<boolean>,
+      default: false
     },
     autoScrollConfig: {
       type: Object as PropType<ScrollIntoViewOptions>,
