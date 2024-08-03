@@ -1,47 +1,47 @@
 <template>
   <Transition name="coach-mark" @after-leave="handleAnimationEnd">
     <div
+      :class="['coach-mark__shadow', shadow ? 'coach-mark__shadow--enable' : null]"
       v-if="activeTemplate && target"
-      ref="coachMarkRef"
-      class="coach-mark--floating"
-      :style="floatingStyles"
     >
-      <div ref="arrowRef" :style="arrowStyles" class="coach-mark__arrow"></div>
-      <div :class="['coach-mark__content', contentClass]">
-        <slot :name="activeTemplate.templateName"></slot>
-        <slot name="actions" :skip="handleSkip" :previous="handlePrevious" :next="handleNext">
-          <div :class="['coach-mark__footer', footerClass]">
-            <slot name="progress" :current="activeTemplateIndex" :total="steps.length">
-              <div class="coach-mark__progress">
-                {{ activeTemplateIndex + 1 }} / {{ steps.length }}
-              </div>
-            </slot>
-            <div :class="['coach-mark__actions', actionsClass]">
-              <slot name="skip" :skip="handleSkip">
-                <button class="coach-mark__button" @click="handleSkip">Skip</button>
+      <div ref="coachMarkRef" class="coach-mark--floating" :style="floatingStyles">
+        <div ref="arrowRef" :style="arrowStyles" class="coach-mark__arrow"></div>
+        <div :class="['coach-mark__content', contentClass]">
+          <slot :name="activeTemplate.templateName"></slot>
+          <slot name="actions" :skip="handleSkip" :previous="handlePrevious" :next="handleNext">
+            <div :class="['coach-mark__footer', footerClass]">
+              <slot name="progress" :current="activeTemplateIndex" :total="steps.length">
+                <div class="coach-mark__progress">
+                  {{ activeTemplateIndex + 1 }} / {{ steps.length }}
+                </div>
               </slot>
-              <slot name="previous" :previous="handlePrevious">
-                <button
-                  class="coach-mark__button"
-                  v-if="activeTemplateIndex > 0"
-                  @click="handlePrevious"
+              <div :class="['coach-mark__actions', actionsClass]">
+                <slot name="skip" :skip="handleSkip">
+                  <button class="coach-mark__button" @click="handleSkip">Skip</button>
+                </slot>
+                <slot name="previous" :previous="handlePrevious">
+                  <button
+                    class="coach-mark__button"
+                    v-if="activeTemplateIndex > 0"
+                    @click="handlePrevious"
+                  >
+                    Previous
+                  </button>
+                </slot>
+                <slot
+                  name="next"
+                  :next="handleNext"
+                  :currentStep="activeTemplateIndex"
+                  :steps="steps"
                 >
-                  Previous
-                </button>
-              </slot>
-              <slot
-                name="next"
-                :next="handleNext"
-                :currentStep="activeTemplateIndex"
-                :steps="steps"
-              >
-                <button class="coach-mark__button" @click="handleNext">
-                  {{ activeTemplateIndex === steps.length - 1 ? 'Finish' : 'Next' }}
-                </button>
-              </slot>
+                  <button class="coach-mark__button" @click="handleNext">
+                    {{ activeTemplateIndex === steps.length - 1 ? 'Finish' : 'Next' }}
+                  </button>
+                </slot>
+              </div>
             </div>
-          </div>
-        </slot>
+          </slot>
+        </div>
       </div>
     </div>
   </Transition>
@@ -94,6 +94,10 @@ export default defineComponent({
       type: Array as PropType<Steps>,
       default: () => []
     },
+    shadow: {
+      type: Boolean as PropType<boolean>,
+      default: false
+    },
     placement: {
       type: String as PropType<Placement>,
       default: 'bottom'
@@ -132,13 +136,14 @@ export default defineComponent({
     const localStorageKey: string = `${PREFIX}-${props.storageKey}`
     let cleanup: Function | null = null
     let action: Action | null = null
+    let activeTargetStyle: { position: string; zIndex: string } | null = null
 
     const isChangingStep: Ref<boolean> = ref(false)
     const activeTemplateIndex: Ref<number> = ref(0)
     const floatingStyles: Ref<StyleValue> = ref({})
     const arrowStyles: Ref<StyleValue> = ref({})
-    const target: Ref<Element | null> = ref(null)
-    const arrowRef: Ref<Element | null> = ref(null)
+    const target: Ref<HTMLElement | null> = ref(null)
+    const arrowRef: Ref<HTMLElement | null> = ref(null)
     const coachMarkRef: Ref<FloatingElement | null> = ref(null)
 
     const activeTemplate: ComputedRef<Step | null> = computed(() => {
@@ -189,6 +194,11 @@ export default defineComponent({
       // trigger animation
       isChangingStep.value = true
       action = Action.next
+      if (props.shadow && target.value && activeTargetStyle) {
+        target.value.style.position = activeTargetStyle.position
+        target.value.style.zIndex = activeTargetStyle.zIndex
+        activeTargetStyle = null
+      }
       target.value = null
     }
 
@@ -204,7 +214,18 @@ export default defineComponent({
       async function observeTarget() {
         const targetEl = document.querySelector(activeTemplate.value?.target as string)
         if (targetEl) {
-          target.value = targetEl
+          target.value = targetEl as HTMLElement
+          if (props.shadow) {
+            const targetElStyle = window.getComputedStyle(targetEl)
+            activeTargetStyle = {
+              zIndex: targetElStyle.zIndex,
+              position: targetElStyle.position
+            }
+            if (targetElStyle.position === 'static') {
+              target.value.style.position = 'relative'
+            }
+            target.value.style.zIndex = '1'
+          }
           observer.disconnect()
           await nextTick()
           doComputePosition()
@@ -304,6 +325,7 @@ export default defineComponent({
   &--floating {
     position: absolute;
     z-index: 1000;
+    pointer-events: initial;
   }
   &__content {
     padding: 20px;
@@ -343,6 +365,18 @@ export default defineComponent({
     margin-right: 8px;
     &:hover {
       background-color: rgba(42, 126, 59, 0.05);
+    }
+  }
+  &__shadow {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    &--enable {
+      pointer-events: initial;
+      background-color: rgba(0, 0, 0, 0.5);
     }
   }
 }
