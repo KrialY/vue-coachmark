@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/experimental-ct-vue';
+import { test, expect } from '../baseFixtures';
 import CoachMarkTest from '../demo/CoachMarkTest.vue';
 import { Locator } from 'playwright-core';
 

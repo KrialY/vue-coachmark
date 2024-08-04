@@ -1,4 +1,6 @@
-import { defineConfig, devices } from '@playwright/experimental-ct-vue';
+import { defineConfig, devices } from '@playwright/experimental-ct-vue'
+import vue from '@vitejs/plugin-vue'
+import istanbul from 'vite-plugin-istanbul'
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -27,20 +29,23 @@ export default defineConfig({
     /* Port to use for Playwright component endpoint. */
     ctPort: 3100,
     headless: false,
+    ctViteConfig: {
+      plugins: [vue(), istanbul()]
+    }
   },
   /* Configure projects for major browsers */
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'] }
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: { ...devices['Desktop Firefox'] }
     },
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-  ],
-});
+      use: { ...devices['Desktop Safari'] }
+    }
+  ]
+})
