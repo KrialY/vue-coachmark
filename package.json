@@ -37,13 +37,15 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/",
     "docs:dev": "npm run docs:dev --prefix docs",
-    "docs:build": "npm run docs:build --prefix docs"
+    "docs:build": "npm run docs:build --prefix docs",
+    "test-ct": "playwright test -c playwright-ct.config.ts"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.6.7"
   },
   "devDependencies": {
     "@floating-ui/vue": "^1.1.1",
+    "@playwright/experimental-ct-vue": "^1.45.3",
     "@rushstack/eslint-patch": "^1.8.0",
     "@tsconfig/node20": "^20.1.4",
     "@types/node": "^20.14.5",
