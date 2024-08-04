@@ -37,7 +37,7 @@ export default defineComponent({
   setup() {
     const steps = ref([
       {
-        target: '#bbb',
+        target: '#bbb', // document.querySelector()
         templateName: '2'
       },
       {
