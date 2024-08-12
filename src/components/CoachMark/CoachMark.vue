@@ -46,6 +46,11 @@
         </div>
       </div>
     </Transition>
+    <div
+      v-if="shadow && activeTemplateIndex < steps.length"
+      ref="shadowRef"
+      :class="['coach-mark__shadow', shadow ? 'coach-mark__shadow--enable' : null]"
+    ></div>
   </Teleport>
 </template>
 
@@ -60,7 +65,8 @@ import {
   type ComputedRef,
   type PropType,
   type Ref,
-  type StyleValue
+  type StyleValue,
+  onBeforeUnmount
 } from 'vue'
 import {
   computePosition,
@@ -151,6 +157,7 @@ export default defineComponent({
     const target: Ref<HTMLElement | null> = ref(null)
     const arrowRef: Ref<HTMLElement | null> = ref(null)
     const coachMarkRef: Ref<FloatingElement | null> = ref(null)
+    const shadowRef: Ref<HTMLElement | null> = ref(null)
 
     const activeTemplate: ComputedRef<Step | null> = computed(() => {
       if (isChangingStep.value) return null
@@ -163,9 +170,46 @@ export default defineComponent({
 
     watch(activeTemplateIndex, (val) => {
       if (val >= props.steps.length) {
-        props.storageKey && localStorage.setItem(localStorageKey, 'true')
+        handleStepEnd()
       }
     })
+
+    onMounted(() => {
+      init()
+      initObserver()
+    })
+
+    onBeforeUnmount(() => {
+      window.removeEventListener('scrollend', onScrollEnd)
+    })
+
+    function init() {
+      if (props.shadow) {
+        window.addEventListener('scrollend', onScrollEnd)
+        document.body.style.overflow = 'hidden'
+      }
+    }
+
+    function initObserver() {
+      const observer = new MutationObserver(observeTarget)
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      })
+      observeTarget()
+
+      async function observeTarget() {
+        const targetEl = document.querySelector(activeTemplate.value?.target as string)
+        if (targetEl) {
+          target.value = targetEl as HTMLElement
+          observer.disconnect()
+          await nextTick()
+          props.shadow && doClipPath()
+          doComputePosition()
+        }
+      }
+    }
 
     async function handleSkip() {
       const res = await activeTemplate.value?.beforeLeave?.()
@@ -201,42 +245,9 @@ export default defineComponent({
       isChangingStep.value = true
       action = Action.next
       if (props.shadow && target.value && activeTargetStyle) {
-        target.value.style.position = activeTargetStyle.position
-        target.value.style.zIndex = activeTargetStyle.zIndex
         activeTargetStyle = null
       }
       target.value = null
-    }
-
-    function initObserver() {
-      const observer = new MutationObserver(observeTarget)
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      })
-      observeTarget()
-
-      async function observeTarget() {
-        const targetEl = document.querySelector(activeTemplate.value?.target as string)
-        if (targetEl) {
-          target.value = targetEl as HTMLElement
-          if (props.shadow) {
-            const targetElStyle = window.getComputedStyle(targetEl)
-            activeTargetStyle = {
-              zIndex: targetElStyle.zIndex,
-              position: targetElStyle.position
-            }
-            if (targetElStyle.position === 'static') {
-              target.value.style.position = 'relative'
-            }
-            target.value.style.zIndex = '1'
-          }
-          observer.disconnect()
-          await nextTick()
-          doComputePosition()
-        }
-      }
     }
 
     function doComputePosition() {
@@ -295,11 +306,47 @@ export default defineComponent({
       }
     }
 
-    onMounted(() => {
-      initObserver()
-    })
+    function handleStepEnd() {
+      props.storageKey && localStorage.setItem(localStorageKey, 'true')
+      if (props.shadow) {
+        document.body.style.overflow = 'initial'
+        window.removeEventListener('scrollend', onScrollEnd)
+      }
+    }
+
+    function doClipPath() {
+      if (!target.value) return
+      const rect = target.value.getBoundingClientRect()
+      const { top, left, width, height } = rect
+
+      const offset = 10
+      const computedWidth = width + offset
+      const computedHeight = height + offset
+      const computedLeft = left - offset / 2
+      const computedTop = top - offset / 2
+
+      if (shadowRef.value) {
+        shadowRef.value.style.clipPath = `polygon(
+          0 0,
+          100% 0,
+          100% 100%,
+          0 100%,
+          0 0,
+          ${computedLeft}px ${computedTop}px,
+          ${computedLeft}px ${computedTop + computedHeight}px,
+          ${computedLeft + computedWidth}px ${computedTop + computedHeight}px,
+          ${computedLeft + computedWidth}px ${computedTop}px,
+          ${computedLeft}px ${computedTop}px
+        )`
+      }
+    }
+
+    function onScrollEnd() {
+      doClipPath()
+    }
 
     return {
+      shadowRef,
       arrowRef,
       coachMarkRef,
       target,
