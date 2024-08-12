@@ -1,10 +1,12 @@
 <template>
-  <Transition name="coach-mark" @after-leave="handleAnimationEnd">
-    <div
-      :class="['coach-mark__shadow', shadow ? 'coach-mark__shadow--enable' : null]"
-      v-if="activeTemplate && target"
-    >
-      <div ref="coachMarkRef" class="coach-mark--floating" :style="floatingStyles">
+  <Teleport to="body" :disabled="!teleported">
+    <Transition name="coach-mark" @after-leave="handleAnimationEnd">
+      <div
+        v-if="activeTemplate && target"
+        ref="coachMarkRef"
+        class="coach-mark--floating"
+        :style="floatingStyles"
+      >
         <div ref="arrowRef" :style="arrowStyles" class="coach-mark__arrow"></div>
         <div :class="['coach-mark__content', contentClass]">
           <slot :name="activeTemplate.templateName"></slot>
@@ -43,8 +45,8 @@
           </slot>
         </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <script lang="ts">
@@ -121,6 +123,10 @@ export default defineComponent({
     autoScroll: {
       type: Boolean as PropType<boolean>,
       default: true
+    },
+    teleported: {
+      type: Boolean as PropType<boolean>,
+      default: false
     },
     autoScrollConfig: {
       type: Object as PropType<ScrollIntoViewOptions>,
