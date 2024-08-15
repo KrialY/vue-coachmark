@@ -46,11 +46,13 @@
         </div>
       </div>
     </Transition>
-    <div
-      v-if="shadow && activeTemplateIndex < steps.length"
-      ref="shadowRef"
-      :class="['coach-mark__shadow', shadow ? 'coach-mark__shadow--enable' : null]"
-    ></div>
+    <Transition name="coach-mark">
+      <div
+        v-if="shadow && isInitEnd && activeTemplateIndex < steps.length"
+        ref="shadowRef"
+        :class="['coach-mark__shadow', shadow ? 'coach-mark__shadow--enable' : null]"
+      ></div>
+    </Transition>
   </Teleport>
 </template>
 
@@ -158,6 +160,7 @@ export default defineComponent({
     const arrowRef: Ref<HTMLElement | null> = ref(null)
     const coachMarkRef: Ref<FloatingElement | null> = ref(null)
     const shadowRef: Ref<HTMLElement | null> = ref(null)
+    const isInitEnd: Ref<boolean> = ref(false)
 
     const activeTemplate: ComputedRef<Step | null> = computed(() => {
       if (isChangingStep.value) return null
@@ -202,6 +205,7 @@ export default defineComponent({
       async function observeTarget() {
         const targetEl = document.querySelector(activeTemplate.value?.target as string)
         if (targetEl) {
+          isInitEnd.value = true
           target.value = targetEl as HTMLElement
           observer.disconnect()
           await nextTick()
@@ -360,6 +364,7 @@ export default defineComponent({
       activeTemplate,
       floatingStyles,
       arrowStyles,
+      isInitEnd,
       handleAnimationEnd,
       handleSkip,
       handlePrevious,
@@ -384,7 +389,6 @@ export default defineComponent({
   &--floating {
     position: absolute;
     z-index: 1000;
-    pointer-events: initial;
   }
   &__content {
     padding: 20px;
@@ -433,7 +437,6 @@ export default defineComponent({
     width: 100vw;
     height: 100vh;
     &--enable {
-      pointer-events: initial;
       background-color: rgba(0, 0, 0, 0.5);
     }
   }
