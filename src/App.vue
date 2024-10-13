@@ -9,21 +9,20 @@
         2222
       </div></template
     >
-    <CoachMark :steps="steps" placement="bottom" shadow>
-      <template #1>1</template>
-      <template #2>
-        <div style="width: 500px; background: red">2</div>
-      </template>
-      <template #3>3</template>
-      <!-- <template #skip="{ skip }">
-        <div @click="skip">aaa</div>
-      </template> -->
+    <CoachMark placement="bottom" shadow>
+      <CoachMarkStep
+        v-for="step in steps"
+        :key="step.templateName"
+        :beforeLeave="step.beforeLeave"
+        :target="step.target"
+        >Step{{ step.templateName }}xx</CoachMarkStep
+      >
     </CoachMark>
   </div>
 </template>
 
 <script setup lang="ts">
-import CoachMark from '@/components/CoachMark'
+import CoachMark, { CoachMarkStep } from '@/components/CoachMark'
 import { onMounted, ref } from 'vue'
 
 const visible = ref(false)

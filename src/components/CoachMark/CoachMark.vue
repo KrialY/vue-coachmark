@@ -2,53 +2,20 @@
   <Teleport to="body" :disabled="!teleported">
     <Transition name="coach-mark" @after-leave="handleAnimationEnd">
       <div
-        v-if="activeTemplate && target"
         ref="coachMarkRef"
         class="coach-mark--floating"
         :style="floatingStyles"
+        v-show="!isChangingStep && target"
       >
         <div ref="arrowRef" :style="arrowStyles" class="coach-mark__arrow"></div>
-        <div :class="['coach-mark__content', contentClass]">
-          <slot :name="activeTemplate.templateName"></slot>
-          <slot name="actions" :skip="handleSkip" :previous="handlePrevious" :next="handleNext">
-            <div :class="['coach-mark__footer', footerClass]">
-              <slot name="progress" :current="activeTemplateIndex" :total="steps.length">
-                <div class="coach-mark__progress">
-                  {{ activeTemplateIndex + 1 }} / {{ steps.length }}
-                </div>
-              </slot>
-              <div :class="['coach-mark__actions', actionsClass]">
-                <slot name="skip" :skip="handleSkip">
-                  <button class="coach-mark__button" @click="handleSkip">Skip</button>
-                </slot>
-                <slot name="previous" :previous="handlePrevious">
-                  <button
-                    class="coach-mark__button"
-                    v-if="activeTemplateIndex > 0"
-                    @click="handlePrevious"
-                  >
-                    Previous
-                  </button>
-                </slot>
-                <slot
-                  name="next"
-                  :next="handleNext"
-                  :currentStep="activeTemplateIndex"
-                  :steps="steps"
-                >
-                  <button class="coach-mark__button" @click="handleNext">
-                    {{ activeTemplateIndex === steps.length - 1 ? 'Finish' : 'Next' }}
-                  </button>
-                </slot>
-              </div>
-            </div>
-          </slot>
-        </div>
+        <CoachMarkSteps @update-total="onUpdateTotal" :current="activeTemplateIndex">
+          <slot></slot>
+        </CoachMarkSteps>
       </div>
     </Transition>
     <Transition name="coach-mark">
       <div
-        v-if="shadow && isInitEnd && activeTemplateIndex < steps.length"
+        v-if="shadow && isInitEnd && activeTemplateIndex < total"
         ref="shadowRef"
         :class="['coach-mark__shadow', shadow ? 'coach-mark__shadow--enable' : null]"
       ></div>
@@ -64,11 +31,11 @@ import {
   ref,
   watch,
   defineComponent,
-  type ComputedRef,
   type PropType,
   type Ref,
   type StyleValue,
-  onBeforeUnmount
+  onBeforeUnmount,
+  provide
 } from 'vue'
 import {
   computePosition,
@@ -80,30 +47,20 @@ import {
   type FloatingElement,
   type Placement
 } from '@floating-ui/dom'
+import CoachMarkSteps from './CoachMarkSteps'
 
 const PREFIX: string = 'CoachMark'
 
-interface Step {
-  target: string
-  templateName: string
-  beforeEnter?: () => Promise<boolean> | void
-  beforeLeave?: () => Promise<boolean> | void
-}
-
-type Steps = Array<Step>
-
-enum Action {
+export enum Action {
   next,
   previous
 }
 
+export const COACH_MARK_PROVIDE_KEY = 'COACH_MARK_PROVIDE_KEY'
+
 export default defineComponent({
   name: 'CoachMark',
   props: {
-    steps: {
-      type: Array as PropType<Steps>,
-      default: () => []
-    },
     shadow: {
       type: Boolean as PropType<boolean>,
       default: false
@@ -113,18 +70,6 @@ export default defineComponent({
       default: 'bottom'
     },
     storageKey: {
-      type: String as PropType<string>,
-      default: ''
-    },
-    contentClass: {
-      type: String as PropType<string>,
-      default: ''
-    },
-    footerClass: {
-      type: String as PropType<string>,
-      default: ''
-    },
-    actionsClass: {
       type: String as PropType<string>,
       default: ''
     },
@@ -146,13 +91,14 @@ export default defineComponent({
       }
     }
   },
+  components: {
+    CoachMarkSteps
+  },
   setup(props) {
     const localStorageKey: string = `${PREFIX}-${props.storageKey}`
     let cleanup: Function | null = null
-    let action: Action | null = null
-    let activeTargetStyle: { position: string; zIndex: string } | null = null
 
-    const isChangingStep: Ref<boolean> = ref(false)
+    const isChangingStep: Ref<boolean> = ref(true)
     const activeTemplateIndex: Ref<number> = ref(0)
     const floatingStyles: Ref<StyleValue> = ref({})
     const arrowStyles: Ref<StyleValue> = ref({})
@@ -161,18 +107,19 @@ export default defineComponent({
     const coachMarkRef: Ref<FloatingElement | null> = ref(null)
     const shadowRef: Ref<HTMLElement | null> = ref(null)
     const isInitEnd: Ref<boolean> = ref(false)
+    const total = ref(0)
+    const action: Ref<Action | null> = ref(null)
+    const currentStep: Ref<any> = ref(null)
 
-    const activeTemplate: ComputedRef<Step | null> = computed(() => {
+    const activeTemplate = computed(() => {
       if (isChangingStep.value) return null
       const isShowed = props.storageKey && localStorage.getItem(localStorageKey)
       if (isShowed === 'true') return null
-      return activeTemplateIndex.value < props.steps.length && activeTemplateIndex.value >= 0
-        ? props.steps[activeTemplateIndex.value]
-        : null
+      return currentStep.value ?? null
     })
 
     watch(activeTemplateIndex, (val) => {
-      if (val >= props.steps.length) {
+      if (val >= total.value) {
         handleStepEnd()
       }
     })
@@ -191,6 +138,10 @@ export default defineComponent({
         window.addEventListener('scrollend', onScrollEnd)
         document.body.style.overflow = 'hidden'
       }
+    }
+
+    function onUpdateTotal(val: number) {
+      total.value = val
     }
 
     function initObserver() {
@@ -215,43 +166,15 @@ export default defineComponent({
       }
     }
 
-    async function handleSkip() {
-      const res = await activeTemplate.value?.beforeLeave?.()
-      if (res === false) return
-      // trigger animation
-      activeTemplateIndex.value = props.steps.length
-    }
-
-    async function handlePrevious() {
-      const res = await activeTemplate.value?.beforeLeave?.()
-      if (res === false) return
-      // trigger animation
-      isChangingStep.value = true
-      action = Action.previous
-      target.value = null
-    }
-
     async function handleAnimationEnd() {
       const next =
-        action === Action.previous ? activeTemplateIndex.value - 1 : activeTemplateIndex.value + 1
-      const step = props.steps[next]
-      const res = await step?.beforeEnter?.()
-      if (res === false) return
+        action.value === Action.previous
+          ? activeTemplateIndex.value - 1
+          : activeTemplateIndex.value + 1
       activeTemplateIndex.value = next
       isChangingStep.value = false
+      await nextTick()
       initObserver()
-    }
-
-    async function handleNext() {
-      const res = await activeTemplate.value?.beforeLeave?.()
-      if (res === false) return
-      // trigger animation
-      isChangingStep.value = true
-      action = Action.next
-      if (props.shadow && target.value && activeTargetStyle) {
-        activeTargetStyle = null
-      }
-      target.value = null
     }
 
     function doComputePosition() {
@@ -355,7 +278,21 @@ export default defineComponent({
       doClipPath()
     }
 
+    onMounted(() => {
+      isChangingStep.value = false
+    })
+
+    provide(COACH_MARK_PROVIDE_KEY, {
+      isChangingStep,
+      activeTemplateIndex,
+      action,
+      total,
+      currentStep
+    })
+
     return {
+      isChangingStep,
+      total,
       shadowRef,
       arrowRef,
       coachMarkRef,
@@ -365,10 +302,8 @@ export default defineComponent({
       floatingStyles,
       arrowStyles,
       isInitEnd,
-      handleAnimationEnd,
-      handleSkip,
-      handlePrevious,
-      handleNext
+      onUpdateTotal,
+      handleAnimationEnd
     }
   }
 })
@@ -390,45 +325,12 @@ export default defineComponent({
     position: absolute;
     z-index: 1000;
   }
-  &__content {
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 4px;
-    box-shadow:
-      0 4px 8px rgba(0, 0, 0, 0.1),
-      0 6px 20px rgba(0, 0, 0, 0.1);
-  }
   &__arrow {
     width: 10px;
     height: 10px;
     background-color: #fff;
     transform: rotate(45deg);
     position: absolute;
-  }
-  &__footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 8px;
-  }
-  &__progress {
-    padding-right: 8px;
-  }
-  &__button {
-    font-size: 14px;
-    color: rgb(42 126 59);
-    padding: 0 14px;
-    line-height: 14px;
-    height: 35px;
-    background-color: #fff;
-    border-radius: 4px;
-    border: 1px solid rgb(42 126 59);
-    cursor: pointer;
-    transition: 0.15s;
-    margin-right: 8px;
-    &:hover {
-      background-color: rgba(42, 126, 59, 0.05);
-    }
   }
   &__shadow {
     position: fixed;
