@@ -98,7 +98,7 @@ export default defineComponent({
     const localStorageKey: string = `${PREFIX}-${props.storageKey}`
     let cleanup: Function | null = null
 
-    const isChangingStep: Ref<boolean> = ref(true)
+    const isChangingStep: Ref<boolean> = ref(false)
     const activeTemplateIndex: Ref<number> = ref(0)
     const floatingStyles: Ref<StyleValue> = ref({})
     const arrowStyles: Ref<StyleValue> = ref({})
@@ -277,10 +277,6 @@ export default defineComponent({
     function onScrollEnd() {
       doClipPath()
     }
-
-    onMounted(() => {
-      isChangingStep.value = false
-    })
 
     provide(COACH_MARK_PROVIDE_KEY, {
       isChangingStep,
