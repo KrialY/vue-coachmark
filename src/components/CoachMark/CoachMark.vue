@@ -4,10 +4,10 @@
       <div
         ref="coachMarkRef"
         class="coach-mark--floating"
-        :style="floatingStyles"
+        :style="contentStyle"
         v-show="!isChangingStep && target"
       >
-        <div ref="arrowRef" :style="arrowStyles" class="coach-mark__arrow"></div>
+        <div ref="arrowRef" :style="arrowStyle" class="coach-mark__arrow"></div>
         <CoachMarkSteps @update-total="onUpdateTotal" :current="activeTemplateIndex">
           <slot></slot>
         </CoachMarkSteps>
@@ -33,22 +33,13 @@ import {
   defineComponent,
   type PropType,
   type Ref,
-  type StyleValue,
   onBeforeUnmount,
   provide
 } from 'vue'
-import {
-  computePosition,
-  arrow,
-  offset,
-  shift,
-  autoUpdate,
-  flip,
-  type FloatingElement,
-  type Placement
-} from '@floating-ui/dom'
+import { type FloatingElement, type Placement } from '@floating-ui/dom'
 import CoachMarkSteps from './CoachMarkSteps'
 import { getClipPath } from './shadow'
+import { useFloating } from './helpHooks'
 
 const PREFIX: string = 'CoachMark'
 
@@ -97,12 +88,9 @@ export default defineComponent({
   },
   setup(props) {
     const localStorageKey: string = `${PREFIX}-${props.storageKey}`
-    let cleanup: Function | null = null
 
     const isChangingStep: Ref<boolean> = ref(false)
     const activeTemplateIndex: Ref<number> = ref(0)
-    const floatingStyles: Ref<StyleValue> = ref({})
-    const arrowStyles: Ref<StyleValue> = ref({})
     const target: Ref<HTMLElement | null> = ref(null)
     const arrowRef: Ref<HTMLElement | null> = ref(null)
     const coachMarkRef: Ref<FloatingElement | null> = ref(null)
@@ -111,6 +99,14 @@ export default defineComponent({
     const total = ref(0)
     const action: Ref<Action | null> = ref(null)
     const currentStep: Ref<any> = ref(null)
+
+    const { update, contentStyle, arrowStyle } = useFloating(
+      target,
+      coachMarkRef,
+      arrowRef,
+      props.placement,
+      props.autoScrollConfig
+    )
 
     const activeTemplate = computed(() => {
       if (isChangingStep.value) return null
@@ -132,6 +128,14 @@ export default defineComponent({
 
     onBeforeUnmount(() => {
       window.removeEventListener('scrollend', onScrollEnd)
+    })
+
+    provide(COACH_MARK_PROVIDE_KEY, {
+      isChangingStep,
+      activeTemplateIndex,
+      action,
+      total,
+      currentStep
     })
 
     function init() {
@@ -162,7 +166,7 @@ export default defineComponent({
           observer.disconnect()
           await nextTick()
           props.shadow && doClipPath()
-          doComputePosition()
+          update()
         }
       }
     }
@@ -178,62 +182,6 @@ export default defineComponent({
       initObserver()
     }
 
-    function doComputePosition() {
-      if (!target.value || !coachMarkRef.value || !arrowRef.value) return
-
-      props.autoScroll && target.value.scrollIntoView(props.autoScrollConfig)
-
-      cleanup && cleanup()
-      cleanup = autoUpdate(target.value, coachMarkRef.value, computeCoachMarkPosition)
-
-      computeCoachMarkPosition()
-
-      async function computeCoachMarkPosition() {
-        const curTargetEl: Element | null = document.querySelector(
-          activeTemplate?.value?.target as string
-        )
-        if (target.value && !curTargetEl) {
-          target.value = null
-          return
-        }
-        if (!target.value || !coachMarkRef.value || !arrowRef.value) return
-        const { x, y, middlewareData, placement } = await computePosition(
-          target.value,
-          coachMarkRef.value,
-          {
-            placement: props.placement,
-            middleware: [offset(10), shift(), flip(), arrow({ element: arrowRef.value })]
-          }
-        )
-        floatingStyles.value = {
-          left: `${x}px`,
-          top: `${y}px`
-        }
-        if (middlewareData.arrow) {
-          const { x, y } = middlewareData.arrow
-          const computeArrowPosition: Record<string, string> = {
-            top: 'bottom',
-            bottom: 'top',
-            left: 'right',
-            right: 'left'
-          }
-          const boxShadowStyle: Record<string, string> = {
-            top: '4px 4px 8px rgba(0, 0, 0, 0.1)',
-            bottom: '-4px -4px 8px rgba(0, 0, 0, 0.1)',
-            left: '4px -4px 8px rgba(0, 0, 0, 0.1)',
-            right: '-4px 4px 8px rgba(0, 0, 0, 0.1)'
-          }
-
-          arrowStyles.value = {
-            left: x != null ? `${x}px` : '',
-            top: y != null ? `${y}px` : '',
-            [computeArrowPosition[placement]]: '-4px',
-            boxShadow: boxShadowStyle[placement]
-          }
-        }
-      }
-    }
-
     function handleStepEnd() {
       props.storageKey && localStorage.setItem(localStorageKey, 'true')
       if (props.shadow) {
@@ -246,20 +194,12 @@ export default defineComponent({
       if (!target.value || !shadowRef.value) return
       const path = getClipPath(target.value)
 
-      shadowRef.value.style.clipPath = `path("${path}")`
+      shadowRef.value.style.clipPath = path
     }
 
     function onScrollEnd() {
       doClipPath()
     }
-
-    provide(COACH_MARK_PROVIDE_KEY, {
-      isChangingStep,
-      activeTemplateIndex,
-      action,
-      total,
-      currentStep
-    })
 
     return {
       isChangingStep,
@@ -270,8 +210,8 @@ export default defineComponent({
       target,
       activeTemplateIndex,
       activeTemplate,
-      floatingStyles,
-      arrowStyles,
+      contentStyle,
+      arrowStyle,
       isInitEnd,
       onUpdateTotal,
       handleAnimationEnd

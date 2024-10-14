@@ -27,5 +27,5 @@ export function getClipPath(target: HTMLElement) {
     roundInfo.bottomRight
   } h${-computedWidth + radius * 2} ${roundInfo.bottomLeft} v${-computedHeight + radius * 2} ${roundInfo.topLeft} z`
 
-  return path
+  return `path("${path}")`
 }
