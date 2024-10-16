@@ -1,14 +1,102 @@
-import { computed, onBeforeUnmount, onMounted, ref, unref, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, unref, watch, watchEffect } from 'vue'
 import { arrow, autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom'
 import type { CSSProperties, Ref } from 'vue'
 import type { ComputePositionReturn, Middleware, Placement } from '@floating-ui/dom'
+import { getClipPath } from './shadow'
+
+function isInViewPort(element: HTMLElement) {
+  const viewWidth = window.innerWidth || document.documentElement.clientWidth
+  const viewHeight = window.innerHeight || document.documentElement.clientHeight
+  const { top, right, bottom, left } = element.getBoundingClientRect()
+
+  return top >= 0 && left >= 0 && right <= viewWidth && bottom <= viewHeight
+}
+
+export const useTarget = (
+  target: Ref<string | HTMLElement | (() => HTMLElement | null) | null | undefined>,
+  scrollIntoViewOptions: boolean | ScrollIntoViewOptions
+) => {
+  const posInfo: any = ref(null)
+  const clipPath = ref()
+
+  const getTargetEl = () => {
+    let targetEl: HTMLElement | null
+    if (typeof target.value === 'string') {
+      targetEl = document.querySelector<HTMLElement>(target.value)
+    } else if (typeof target.value === 'function') {
+      targetEl = target.value()
+    } else {
+      targetEl = target.value ?? null
+    }
+    return targetEl
+  }
+
+  const updatePosInfo = async () => {
+    const targetEl = getTargetEl()
+    if (!targetEl) {
+      posInfo.value = null
+      return
+    }
+
+    if (isInViewPort(targetEl)) {
+      updateClipPath()
+    } else {
+      clipPath.value = null
+      targetEl.scrollIntoView(scrollIntoViewOptions)
+    }
+    const { left, top, width, height } = targetEl.getBoundingClientRect()
+
+    posInfo.value = {
+      left,
+      top,
+      width,
+      height
+    }
+  }
+
+  function updateClipPath() {
+    const targetEl = getTargetEl()
+    if (targetEl) {
+      clipPath.value = getClipPath(targetEl)
+    }
+  }
+
+  onMounted(() => {
+    watch(
+      [target],
+      () => {
+        updatePosInfo()
+      },
+      {
+        immediate: true
+      }
+    )
+    window.addEventListener('resize', updatePosInfo)
+    window.addEventListener('scrollend', updateClipPath)
+  })
+
+  onBeforeUnmount(() => {
+    window.removeEventListener('resize', updatePosInfo)
+    window.removeEventListener('scrollend', updateClipPath)
+  })
+
+  const triggerTarget = computed(() => {
+    const targetEl = getTargetEl()
+
+    return targetEl
+  })
+
+  return {
+    clipPath,
+    target: triggerTarget
+  }
+}
 
 export const useFloating = (
   referenceRef: Ref<HTMLElement | null>,
   contentRef: Ref<HTMLElement | null>,
   arrowRef: Ref<HTMLElement | null>,
-  placement: Placement,
-  scrollIntoViewOptions: ScrollIntoViewOptions
+  placement: Placement
 ) => {
   const x = ref<number>()
   const y = ref<number>()
@@ -32,7 +120,6 @@ export const useFloating = (
     const referenceEl = unref(referenceRef)
     const contentEl = unref(contentRef)
     if (!referenceEl || !contentEl) return
-    referenceEl.scrollIntoView(scrollIntoViewOptions)
 
     const {
       x: _x,
@@ -50,15 +137,6 @@ export const useFloating = (
   }
 
   const contentStyle = computed<CSSProperties>(() => {
-    if (!unref(referenceRef)) {
-      return {
-        top: '50%',
-        left: '50%',
-        transform: 'translate3d(-50%, -50%, 0)',
-        maxWidth: '100vw'
-      }
-    }
-
     return {
       top: unref(y) != null ? `${unref(y)}px` : '',
       left: unref(x) != null ? `${unref(x)}px` : ''

@@ -78,7 +78,7 @@ export default defineComponent({
 
     async function handleSkip() {
       // trigger animation
-      activeTemplateIndex.value = total
+      activeTemplateIndex.value = total.value
     }
 
     async function handlePrevious() {

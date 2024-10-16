@@ -5,7 +5,7 @@
         ref="coachMarkRef"
         class="coach-mark--floating"
         :style="contentStyle"
-        v-show="!isChangingStep && target"
+        v-show="!isChangingStep && target && activeTemplateIndex < total"
       >
         <div ref="arrowRef" :style="arrowStyle" class="coach-mark__arrow"></div>
         <CoachMarkSteps @update-total="onUpdateTotal" :current="activeTemplateIndex">
@@ -15,9 +15,10 @@
     </Transition>
     <Transition name="coach-mark">
       <div
-        v-if="shadow && isInitEnd && activeTemplateIndex < total"
+        v-if="shadow && activeTemplateIndex < total"
         ref="shadowRef"
         :class="['coach-mark__shadow', shadow ? 'coach-mark__shadow--enable' : null]"
+        :style="{ clipPath: clipPath ? clipPath : 'initial' }"
       ></div>
     </Transition>
   </Teleport>
@@ -26,20 +27,17 @@
 <script lang="ts">
 import {
   computed,
-  nextTick,
-  onMounted,
   ref,
   watch,
   defineComponent,
   type PropType,
   type Ref,
-  onBeforeUnmount,
-  provide
+  provide,
+  onBeforeMount
 } from 'vue'
 import { type FloatingElement, type Placement } from '@floating-ui/dom'
 import CoachMarkSteps from './CoachMarkSteps'
-import { getClipPath } from './shadow'
-import { useFloating } from './helpHooks'
+import { useFloating, useTarget } from './helpHooks'
 
 const PREFIX: string = 'CoachMark'
 
@@ -91,22 +89,12 @@ export default defineComponent({
 
     const isChangingStep: Ref<boolean> = ref(false)
     const activeTemplateIndex: Ref<number> = ref(0)
-    const target: Ref<HTMLElement | null> = ref(null)
     const arrowRef: Ref<HTMLElement | null> = ref(null)
     const coachMarkRef: Ref<FloatingElement | null> = ref(null)
     const shadowRef: Ref<HTMLElement | null> = ref(null)
-    const isInitEnd: Ref<boolean> = ref(false)
     const total = ref(0)
     const action: Ref<Action | null> = ref(null)
     const currentStep: Ref<any> = ref(null)
-
-    const { update, contentStyle, arrowStyle } = useFloating(
-      target,
-      coachMarkRef,
-      arrowRef,
-      props.placement,
-      props.autoScrollConfig
-    )
 
     const activeTemplate = computed(() => {
       if (isChangingStep.value) return null
@@ -114,6 +102,15 @@ export default defineComponent({
       if (isShowed === 'true') return null
       return currentStep.value ?? null
     })
+    const currentTarget = computed(() => activeTemplate.value?.target)
+
+    const { target, clipPath } = useTarget(currentTarget, props.autoScrollConfig)
+    const { contentStyle, arrowStyle } = useFloating(
+      target,
+      coachMarkRef,
+      arrowRef,
+      props.placement
+    )
 
     watch(activeTemplateIndex, (val) => {
       if (val >= total.value) {
@@ -121,14 +118,7 @@ export default defineComponent({
       }
     })
 
-    onMounted(() => {
-      init()
-      initObserver()
-    })
-
-    onBeforeUnmount(() => {
-      window.removeEventListener('scrollend', onScrollEnd)
-    })
+    onBeforeMount(init)
 
     provide(COACH_MARK_PROVIDE_KEY, {
       isChangingStep,
@@ -140,35 +130,12 @@ export default defineComponent({
 
     function init() {
       if (props.shadow) {
-        window.addEventListener('scrollend', onScrollEnd)
         document.body.style.overflow = 'hidden'
       }
     }
 
     function onUpdateTotal(val: number) {
       total.value = val
-    }
-
-    function initObserver() {
-      const observer = new MutationObserver(observeTarget)
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      })
-      observeTarget()
-
-      async function observeTarget() {
-        const targetEl = document.querySelector(activeTemplate.value?.target as string)
-        if (targetEl) {
-          isInitEnd.value = true
-          target.value = targetEl as HTMLElement
-          observer.disconnect()
-          await nextTick()
-          props.shadow && doClipPath()
-          update()
-        }
-      }
     }
 
     async function handleAnimationEnd() {
@@ -178,30 +145,17 @@ export default defineComponent({
           : activeTemplateIndex.value + 1
       activeTemplateIndex.value = next
       isChangingStep.value = false
-      await nextTick()
-      initObserver()
     }
 
     function handleStepEnd() {
       props.storageKey && localStorage.setItem(localStorageKey, 'true')
       if (props.shadow) {
         document.body.style.overflow = 'initial'
-        window.removeEventListener('scrollend', onScrollEnd)
       }
     }
 
-    function doClipPath() {
-      if (!target.value || !shadowRef.value) return
-      const path = getClipPath(target.value)
-
-      shadowRef.value.style.clipPath = path
-    }
-
-    function onScrollEnd() {
-      doClipPath()
-    }
-
     return {
+      clipPath,
       isChangingStep,
       total,
       shadowRef,
@@ -212,7 +166,6 @@ export default defineComponent({
       activeTemplate,
       contentStyle,
       arrowStyle,
-      isInitEnd,
       onUpdateTotal,
       handleAnimationEnd
     }
@@ -244,11 +197,13 @@ export default defineComponent({
     position: absolute;
   }
   &__shadow {
+    transition: all 0.5s ease;
     position: fixed;
     top: 0;
     right: 0;
     left: 0;
     bottom: 0;
+    z-index: 999;
     &--enable {
       background-color: rgba(0, 0, 0, 0.5);
     }

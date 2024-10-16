@@ -1,15 +1,15 @@
 <template>
   <div style="width: 2000px; height: 2000px">
-    <template v-if="visible">
-      <button id="aaa" style="margin-left: 300px">1111</button>
-      <div
-        style="background: red; width: 300px; position: absolute; bottom: -100px; left: 800px"
-        id="bbb"
-      >
-        2222
-      </div></template
+    <button id="aaa" style="margin-left: 300px">1111</button>
+    <button id="ccc" style="margin-left: 300px">cccc</button>
+    <div
+      style="background: red; width: 300px; position: absolute; bottom: -100px; left: 800px"
+      id="bbb"
+      ref="testRef"
     >
-    <CoachMark placement="bottom" shadow>
+      2222
+    </div>
+    <CoachMark placement="bottom" shadow v-if="coachMarkVisible">
       <CoachMarkStep
         v-for="step in steps"
         :key="step.templateName"
@@ -25,7 +25,9 @@
 import CoachMark, { CoachMarkStep } from '@/components/CoachMark'
 import { onMounted, ref } from 'vue'
 
-const visible = ref(false)
+const visible = ref(true)
+const coachMarkVisible = ref(false)
+const testRef = ref()
 
 const steps = ref([
   {
@@ -47,12 +49,20 @@ const steps = ref([
     beforeLeave: () => {
       console.log('beforeLeave aa')
     }
+  },
+  {
+    target: '#ccc',
+    templateName: '1'
   }
 ])
 onMounted(() => {
   setTimeout(() => {
     visible.value = true
+    coachMarkVisible.value = true
   }, 2000)
+  // testRef.value.scrollIntoView({
+  //   behavior: 'smooth'
+  // })
 })
 </script>
 
