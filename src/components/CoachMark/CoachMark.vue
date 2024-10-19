@@ -14,12 +14,11 @@
       </div>
     </Transition>
     <Transition name="coach-mark">
-      <div
+      <CoachMarkMask
         v-if="shadow && activeTemplateIndex < total"
-        ref="shadowRef"
-        :class="['coach-mark__shadow', shadow ? 'coach-mark__shadow--enable' : null]"
-        :style="{ clipPath: clipPath ? clipPath : 'initial' }"
-      ></div>
+        :clipPath="clipPath"
+        :shadow="shadow"
+      />
     </Transition>
   </Teleport>
 </template>
@@ -37,6 +36,7 @@ import {
 } from 'vue'
 import { type FloatingElement, type Placement } from '@floating-ui/dom'
 import CoachMarkSteps from './CoachMarkSteps'
+import CoachMarkMask from './Mask.vue'
 import { useFloating, useTarget } from './helpHooks'
 
 const PREFIX: string = 'CoachMark'
@@ -45,7 +45,6 @@ export enum Action {
   next,
   previous
 }
-
 export const COACH_MARK_PROVIDE_KEY = 'COACH_MARK_PROVIDE_KEY'
 
 export default defineComponent({
@@ -82,7 +81,8 @@ export default defineComponent({
     }
   },
   components: {
-    CoachMarkSteps
+    CoachMarkSteps,
+    CoachMarkMask
   },
   setup(props) {
     const localStorageKey: string = `${PREFIX}-${props.storageKey}`
@@ -91,7 +91,6 @@ export default defineComponent({
     const activeTemplateIndex: Ref<number> = ref(0)
     const arrowRef: Ref<HTMLElement | null> = ref(null)
     const coachMarkRef: Ref<FloatingElement | null> = ref(null)
-    const shadowRef: Ref<HTMLElement | null> = ref(null)
     const total = ref(0)
     const action: Ref<Action | null> = ref(null)
     const currentStep: Ref<any> = ref(null)
@@ -158,7 +157,6 @@ export default defineComponent({
       clipPath,
       isChangingStep,
       total,
-      shadowRef,
       arrowRef,
       coachMarkRef,
       target,
@@ -195,18 +193,6 @@ export default defineComponent({
     background-color: #fff;
     transform: rotate(45deg);
     position: absolute;
-  }
-  &__shadow {
-    transition: all 0.5s ease;
-    position: fixed;
-    top: 0;
-    right: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 999;
-    &--enable {
-      background-color: rgba(0, 0, 0, 0.5);
-    }
   }
 }
 </style>
