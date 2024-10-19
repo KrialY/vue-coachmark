@@ -40,6 +40,7 @@ import CoachMarkMask from './Mask.vue'
 import { useFloating, useTarget } from './helpHooks'
 
 const PREFIX: string = 'CoachMark'
+const STORAGE_VALUE = 'TRUE'
 
 export enum Action {
   next,
@@ -98,7 +99,7 @@ export default defineComponent({
     const activeTemplate = computed(() => {
       if (isChangingStep.value) return null
       const isShowed = props.storageKey && localStorage.getItem(localStorageKey)
-      if (isShowed === 'true') return null
+      if (isShowed === STORAGE_VALUE) return null
       return currentStep.value ?? null
     })
     const currentTarget = computed(() => activeTemplate.value?.target)
@@ -147,7 +148,7 @@ export default defineComponent({
     }
 
     function handleStepEnd() {
-      props.storageKey && localStorage.setItem(localStorageKey, 'true')
+      props.storageKey && localStorage.setItem(localStorageKey, STORAGE_VALUE)
       if (props.shadow) {
         document.body.style.overflow = 'initial'
       }
